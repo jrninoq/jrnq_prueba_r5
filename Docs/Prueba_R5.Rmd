@@ -1,0 +1,217 @@
+---
+title: "Prueba_R5"
+author: "José Rubén Niño Quevedo"
+date: "2023-07-13"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## DESCRIPCIÓN DE LA PRUEBA
+Esta prueba que está diseñada para medir tus capacidades como Ingeniero de Datos. Porfavor, envíanos como respuesta este correo un repositorio de GitHub (asegurate de dejarlo público) con todos los entregables y demás cosas que quieras sumarle al ejercicio y que creas que nos ayuden a tomar una decisión.
+
+Para realizarla debes utilizar este dataset:
+ https://docs.google.com/spreadsheets/d/17TUqLPowoHFiu6PGmHHs6oX5jTpz3C5N6vJ014eUOwA/edit#gid=913663848
+
+1.	Diseñar un DWH con base en el dataset, se puede usar cualquier metodología.    
+
+Entregable: Gráfico representando el diseño, explicación de por qué se eligió la metodología teniendo en cuenta la escalabilidad y facilidad de uso para usuarios finales.
+
+2. Crear un pipeline en Python que tome como input el dataset y que escriba el resultado en las tablas diseñadas en el punto 1. Se puede usar cualquier motor de base de datos.
+   
+Entregable: Código en Python del pipeline, se puede usar cualquier librería que considere necesaria.
+
+3. Una vez los datos estén cargados a la base de datos utilice Python y SQL para responder las siguientes preguntas:
+
+
+a. ¿Cuáles son las tiendas con compras de al menos 100 clientes diferentes?
+
+b. ¿Cuáles son los 5 barrios donde la mayor cantidad de clientes únicos realizan compras en tiendas tipo 'Tienda Regional'?
+
+Entregable: Código en Python y SQL resolviendo cada una de las preguntas.
+
+## SOLUCIÓN PROPUESTA
+La siguiente es una propuesta de solución para la tarea solicitada. este documento ha sido elaborado en R Markdown.
+
+### Diseño del Data Warehouse (DWH):
+
+Para el diseño del DWH basado en el dataset proporcionado, se propone la siguiente estructura:
+
+**Tabla "Clientes":** 
+num_documento_cliente (clave primaria),
+tipo_documento_cliente,
+id_barrio (clave foránea).
+
+**Tabla "Tiendas":**
+codigo_tienda (clave primaria),
+tipo_tienda,
+latitud_tienda,
+longitud_tienda,
+id_barrio (clave foránea).
+
+**Tabla "Compras":**
+id_compra (clave primaria),
+num_documento_cliente (clave foránea),
+codigo_tienda (clave foránea),
+total_compra,
+fecha_compra.
+
+**Tabla "Barrios":**
+id_barrio (clave primaria),
+nombre_barrio.
+
+En este diseño, la tabla "Compras" actúa como la tabla de hechos central que contiene las métricas principales (total_compra, fecha_compra) y se relaciona con las tablas de dimensiones (Clientes, Tiendas y Barrios) mediante claves foráneas, y un gráfico representativo del diseño propuesto es:
+
+![](C:\Users\dell\Downloads\Prueba_Tecnica_R5\JRNQ_Propuesta_DWH.png)
+
+Se eligió este diseño debido a su facilidad de uso y escalabilidad para usuarios finales. Algunas razones clave para esta elección son:
+
+- **Facilidad de uso**: El diseño en estrella permite a los usuarios finales realizar consultas de manera sencilla y comprensible. Pueden explorar los datos utilizando las dimensiones como puntos de entrada, lo que les permite analizar y comprender rápidamente los datos sin la necesidad de conocimientos técnicos profundos.
+
+- **Rendimiento eficiente**: El diseño en estrella se optimiza para consultas analíticas y de generación de informes. Al tener una tabla central de hechos y tablas de dimensiones relacionadas, se pueden realizar consultas rápidas y eficientes a través de las dimensiones sin afectar el rendimiento general del sistema.
+
+- **Escalabilidad**: El diseño en estrella es escalable en términos de agregar nuevas dimensiones o medidas sin interrumpir las consultas existentes. Esto permite una fácil expansión del DWH a medida que se agregan más datos o se requieren nuevas métricas para el análisis.
+
+En resumen, el diseño propuesto proporciona una estructura simple y comprensible para los usuarios finales, al tiempo que permite un rendimiento eficiente y escalabilidad para futuras necesidades analíticas.
+
+
+### Pipeline en Python usando el motor de base de datos MySQL
+
+El siguiente código en Python utiliza el motor de base de datos MySQL para crear un pipeline que toma el dataset como entrada y escribe los resultados en las tablas diseñadas en el punto anterior. 
+
+Se utiliza la librería pandas para manipular los datos y la librería mysql-connector-python para conectarse a la base de datos MySQL.
+
+```{r}
+library(reticulate)
+use_python("C:/Users/dell/AppData/Local/Programs/Python/Python311")
+```
+
+```{python}
+import pandas as pd
+from sqlalchemy import create_engine
+
+# Paso 1: Leer el conjunto de datos
+df = pd.read_csv("C:/Users/dell/Downloads/Prueba_Tecnica_R5/dataset.csv")
+
+# Paso 2: Conectarse a la base de datos MySQL
+db_user = 'root'
+db_password = 'Rvb3nch0'
+db_host = 'localhost'
+db_name = 'jrnq_prueba_r5'
+
+engine = create_engine(f'mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}')
+
+# Paso 3: Escribir los datos en las tablas
+
+# Compras (fact)
+df_fact = df[['num_documento_cliente', 'codigo_tienda', 'fecha_compra', 'total_compra']]
+df_fact.to_sql('compras', con = engine, if_exists = 'replace', index=False)
+
+# Tabla Tiendas (dim1)
+df_dim1 = df[['codigo_tienda', 'tipo_tienda', 'latitud_tienda', 'longitud_tienda', 'id_barrio']]
+df_dim1 = df_dim1.drop_duplicates()  # Eliminar duplicados si es necesario
+df_dim1.to_sql('tiendas', con = engine, if_exists = 'replace', index=False)
+
+# Tabla Barrios (dim2)
+df_dim2 = df[['id_barrio', 'nombre_barrio']]
+df_dim2 = df_dim2.drop_duplicates()  # Eliminar duplicados si es necesario
+df_dim2.to_sql('barrios', con = engine, if_exists = 'replace', index=False)
+
+# Tabla Clientes (dim3)
+df_dim3 = df[['num_documento_cliente', 'tipo_documento_cliente', 'id_barrio']]
+df_dim3 = df_dim3.drop_duplicates()  # Eliminar duplicados si es necesario
+df_dim3.to_sql('clientes', con = engine, if_exists = 'replace', index=False)
+
+# Paso 4: Cerrar la conexión a la base de datos
+engine.dispose()
+
+print("¡Datos cargados exitosamente en las tablas del Data Warehouse!")
+
+```
+
+Este pipeline leerá el archivo CSV que contiene el dataset, establecerá una conexión con la base de datos MySQL utilizando SQLAlchemy y luego cargará los datos en las tablas correspondientes usando el método to_sql(). Al finalizar, se cerrará la conexión con la base de datos y se mostrará un mensaje de confirmación.
+
+
+### ¿Cuáles son las tiendas con compras de al menos 100 clientes diferentes? y 
+
+El siguiente código, en Python y SQL, nos dará la respuesta a la pregunta dada:
+
+```{python}
+import pandas as pd
+from sqlalchemy import create_engine
+
+# Establecer la conexión con la base de datos MySQL
+db_user = 'root'
+db_password = 'Rvb3nch0'
+db_host = 'localhost'
+db_name = 'jrnq_prueba_r5'
+
+engine = create_engine(f'mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}')
+
+# Consulta SQL
+query = '''
+    SELECT codigo_tienda, COUNT(DISTINCT num_documento_cliente) AS num_clientes
+    FROM compras
+    GROUP BY codigo_tienda
+    HAVING COUNT(DISTINCT num_documento_cliente) >= 100;
+'''
+
+# Ejecutar la consulta y obtener los resultados en un DataFrame
+df_result = pd.read_sql(query, con=engine)
+
+# Cerrar la conexión a la base de datos
+engine.dispose()
+
+# Imprimir los resultados
+print("Tiendas con compras de al menos 100 clientes diferentes:")
+print(df_result)
+
+```
+
+
+### ¿cuáles son los 5 barrios donde la mayor cantidad de clientes únicos realizan compras en tiendas tipo 'Tienda Regional'?
+
+Para responder a la preguntas utilizando Python y SQL con los datos ya cargados en la base de datos MySQL, podemos utilizar el siguiente código:
+
+```{python}
+import pandas as pd
+from sqlalchemy import create_engine
+
+# Establecer la conexión con la base de datos MySQL
+db_user = 'root'
+db_password = 'Rvb3nch0'
+db_host = 'localhost'
+db_name = 'jrnq_prueba_r5'
+
+engine = create_engine(f'mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}')
+
+# Consulta SQL
+query = '''
+    SELECT b.nombre_barrio, COUNT(DISTINCT c.num_documento_cliente) AS num_clientes
+    FROM compras AS c
+    JOIN tiendas AS t ON c.codigo_tienda = t.codigo_tienda
+    JOIN barrios AS b ON t.id_barrio = b.id_barrio
+    WHERE t.tipo_tienda = 'Tienda Regional'
+    GROUP BY b.nombre_barrio
+    ORDER BY num_clientes DESC
+    LIMIT 5
+'''
+
+# Ejecutar la consulta y obtener los resultados en un DataFrame
+df_result = pd.read_sql(query, con=engine)
+
+# Cerrar la conexión a la base de datos
+engine.dispose()
+
+# Imprimir los resultados
+print("Los 5 barrios donde la mayor cantidad de clientes únicos realizan compras en tiendas tipo 'Tienda Regional':")
+print(df_result)
+
+```
+
+En este código, se realiza una consulta SQL que une las tablas Compras, Tiendas y Barrios para obtener los barrios donde la mayor cantidad de clientes únicos realizan compras en tiendas de tipo 'Tienda Regional'. Los resultados se ordenan por el número de clientes únicos en orden descendente y se limita a los 5 primeros resultados.
+
+Claramente el código se puede modificar según las necesidades del usuario final.
