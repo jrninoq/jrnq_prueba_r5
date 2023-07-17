@@ -65,7 +65,7 @@ nombre_barrio.
 
 En este diseño, la tabla "Compras" actúa como la tabla de hechos central que contiene las métricas principales (total_compra, fecha_compra) y se relaciona con las tablas de dimensiones (Clientes, Tiendas y Barrios) mediante claves foráneas, y un gráfico representativo del diseño propuesto es:
 
-![](C:\Users\dell\Downloads\Prueba_Tecnica_R5\JRNQ_Propuesta_DWH.png)
+![](C:\Users\dell\Downloads\Prueba_Tecnica_R5\Docs\JRNQ_Propuesta_DWH.png)
 
 Se eligió este diseño debido a su facilidad de uso y escalabilidad para usuarios finales. Algunas razones clave para esta elección son:
 
@@ -94,7 +94,7 @@ import pandas as pd
 from sqlalchemy import create_engine
 
 # Paso 1: Leer el conjunto de datos
-df = pd.read_csv("C:/Users/dell/Downloads/Prueba_Tecnica_R5/dataset.csv")
+df = pd.read_csv("C:/Users/dell/Downloads/Prueba_Tecnica_R5/Data/dataset.csv")
 
 # Paso 2: Conectarse a la base de datos MySQL
 db_user = 'root'
